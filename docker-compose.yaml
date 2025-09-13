@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    build:
+      context: ./postgres-init
+      dockerfile: Dockerfile
+    container_name: postgres_app_db
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: secure_password_123
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d mydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer_ui
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_USERNAME: app_user
+      ADMINER_PASSWORD: secure_password_123
+      ADMINER_DEFAULT_DB: mydb
+
+  app:
+    build: .
+    container_name: postgres_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app/db_config.yaml:/app/db_config.yaml
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
