@@ -3,8 +3,7 @@ version: '3.8'
 services:
   postgres:
     build:
-      context: ./postgres-init
-      dockerfile: Dockerfile
+      dockerfile: ./postgres-init/Dockerfile
     container_name: postgres_app_db
     environment:
       POSTGRES_DB: mydb
@@ -20,15 +19,14 @@ services:
       timeout: 5s
       retries: 5
 
-
   app:
-    build: .
-    container_name: postgres_app
+    image: postgres-pinger:1.0 
+    container_name: postgres_pinger
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     volumes:
-      - ./app/db_config.yaml:/app/db_config.yaml
-    stdin_open: true
-    tty: true
+      - ./app/logs:/app/logs
     restart: unless-stopped
