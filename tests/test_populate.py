@@ -13,7 +13,7 @@ def test_populate_scripts_run():
     conn = psycopg2.connect(
         host=os.getenv("DB_HOST", "postgres"),
         port=int(os.getenv("DB_PORT", "5432")),
-        dbname=os.getenv("DB_NAME", "shop_demo"),
+        dbname=os.getenv("DB_NAME", "university_demo"),
         user=os.getenv("DB_ADMIN_USER", "postgres"),
         password=os.getenv("DB_ADMIN_PASS", "postgres"),
     )

@@ -124,7 +124,7 @@ def _print_rows(rows: list[dict[str, Any]]) -> None:
 def _connect_interactive() -> psycopg2.extensions.connection:
     host = os.getenv("DB_HOST", "db")
     port = int(os.getenv("DB_PORT", "5432"))
-    dbname = os.getenv("DB_NAME", "shop_demo")
+    dbname = os.getenv("DB_NAME", "university_demo")
 
     default_user = (os.getenv("DB_USER") or "").strip() or None
     default_pass = (os.getenv("DB_PASS") or "").strip() or None

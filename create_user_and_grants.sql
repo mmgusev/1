@@ -11,10 +11,10 @@ BEGIN
 END
 $$;
 
--- NOTE: Database `shop_demo` is created by the Postgres image via POSTGRES_DB.
+-- NOTE: Database `university_demo` is created by the Postgres image via POSTGRES_DB.
 -- When used in Docker init, this script will run inside that DB already.
 
-GRANT CONNECT ON DATABASE shop_demo TO app_user;
+GRANT CONNECT ON DATABASE university_demo TO app_user;
 
 GRANT USAGE ON SCHEMA public TO app_user;
 
