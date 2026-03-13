@@ -1,18 +1,16 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
-COPY app/requirements.txt .
+COPY app ./app
+COPY tests ./tests
+COPY requirements.txt ./requirements.txt
+COPY schema.sql ./schema.sql
+COPY demo_data.sql ./demo_data.sql
+COPY create_user_and_grants.sql ./create_user_and_grants.sql
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ .
+ENV PYTHONUNBUFFERED=1
 
-EXPOSE 5000
-
-# Запуск приложения
-CMD ["python", "main.py"]
+CMD ["python","app/main.py"]

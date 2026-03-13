@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: shop_demo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Auto-init DB on first start (only when volume is empty)
+      - ./schema.sql:/docker-entrypoint-initdb.d/10_schema.sql:ro
+      - ./create_user_and_grants.sql:/docker-entrypoint-initdb.d/20_user_and_grants.sql:ro
+      - ./demo_data.sql:/docker-entrypoint-initdb.d/30_demo_data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shop_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - shop-net
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: shop_demo
+    env_file:
+      - ./.env
+    networks:
+      - shop-net
+    stdin_open: true
+    tty: true
+
+volumes:
+  pgdata:
+
+networks:
+  shop-net:
