@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Update Row – {{ table }} – Shop DB{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">✏️ Update Row</h2>
+
+<!-- Table selector -->
+<form method="get" action="{{ url_for('update') }}" class="row g-2 mb-4 align-items-end">
+  <div class="col-auto">
+    <label class="form-label fw-semibold">Table</label>
+    <select name="table" class="form-select" onchange="this.form.submit()">
+      {% for t in tables %}
+        <option value="{{ t }}" {% if t == table %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-secondary">Switch</button>
+  </div>
+</form>
+
+<div class="row g-4">
+  <!-- Left: row picker -->
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-secondary text-white">Select row by ID</div>
+      <div class="card-body p-2" style="max-height:60vh;overflow-y:auto;">
+        {% if rows %}
+          <div class="list-group list-group-flush">
+            {% for r in rows %}
+              <a href="{{ url_for('update', table=table, id=r['id']) }}"
+                 class="list-group-item list-group-item-action py-1
+                        {% if row_id and row_id|string == r['id']|string %}active{% endif %}">
+                id = {{ r['id'] }}
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small p-2">No rows found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: edit form -->
+  <div class="col-md-9">
+    {% if row %}
+    <div class="card shadow-sm">
+      <div class="card-header bg-warning">
+        Editing <strong>{{ table }}</strong> — id = {{ row['id'] }}
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('update') }}" novalidate>
+          <input type="hidden" name="table" value="{{ table }}"/>
+          <input type="hidden" name="row_id" value="{{ row['id'] }}"/>
+          <div class="row g-3">
+            {% for col in editable_cols %}
+            <div class="col-sm-6 col-lg-4">
+              <label for="upd_{{ col }}" class="form-label fw-semibold">{{ col }}</label>
+              <input type="text" class="form-control" id="upd_{{ col }}" name="{{ col }}"
+                     value="{{ row[col] if row[col] is not none else '' }}"
+                     placeholder="{{ col }}"/>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="mt-4">
+            <button type="submit" class="btn btn-warning">Save changes</button>
+            <a href="{{ url_for('view', table=table, id=row['id']) }}"
+               class="btn btn-outline-secondary ms-2">View table</a>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer text-muted small">
+        Leave a field blank to keep its current value unchanged.
+        The <code>id</code> column cannot be edited.
+      </div>
+    </div>
+    {% elif row_id %}
+      <div class="alert alert-danger">Row with id = {{ row_id }} not found in <strong>{{ table }}</strong>.</div>
+    {% else %}
+      <div class="alert alert-info">Select a row from the list on the left to start editing.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
