@@ -1,0 +1,82 @@
+---
+# OWASP ZAP Automation Framework — Grey-box scan
+# Mode: grey-box (form-based authentication with valid credentials)
+env:
+  contexts:
+    - name: "shop_demo_greybox"
+      urls:
+        - "http://host.docker.internal:5000"
+      includePaths:
+        - "http://host.docker.internal:5000.*"
+      excludePaths:
+        - "http://host.docker.internal:5000/logout"
+      authentication:
+        method: "form"
+        parameters:
+          loginUrl: "http://host.docker.internal:5000/"
+          loginRequestData: "db_user={%username%}&db_pass={%password%}"
+          loginPageUrl: "http://host.docker.internal:5000/"
+        verification:
+          method: "response"
+          loggedInRegex: "Welcome,"
+          loggedOutRegex: "Please log in"
+      sessionManagement:
+        method: "cookie"
+      users:
+        - name: "app_user"
+          credentials:
+            username: "app_user"
+            password: "app_pass_ChangeMe!"
+  parameters:
+    failOnError: false
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # 1. Spider as authenticated user
+  - type: spider
+    parameters:
+      context: "shop_demo_greybox"
+      user: "app_user"
+      url: "http://host.docker.internal:5000"
+      maxDuration: 3
+      maxDepth: 10
+      acceptCookies: true
+
+  # 2. Ajax Spider as authenticated user
+  - type: spiderAjax
+    parameters:
+      context: "shop_demo_greybox"
+      user: "app_user"
+      url: "http://host.docker.internal:5000/main"
+      maxDuration: 2
+
+  # 3. Passive scan
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  # 4. Active scan as authenticated user — covers /view, /add, /update
+  - type: activeScan
+    parameters:
+      context: "shop_demo_greybox"
+      user: "app_user"
+      policy: "Default Policy"
+      maxRuleDurationInMins: 2
+      maxScanDurationInMins: 15
+
+  # 5. Reports
+  - type: report
+    parameters:
+      template: "traditional-json"
+      reportDir: "/zap/reports"
+      reportFile: "greybox_report"
+      reportTitle: "ZAP Grey-box Scan — shop_demo"
+      reportDescription: "Authenticated grey-box DAST scan of the Flask shop_demo application"
+
+  - type: report
+    parameters:
+      template: "traditional-xml"
+      reportDir: "/zap/reports"
+      reportFile: "greybox_report"
+      reportTitle: "ZAP Grey-box Scan — shop_demo"

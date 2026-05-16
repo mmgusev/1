@@ -1,0 +1,103 @@
+Found Java version 17.0.19
+Available memory: 7836 MB
+Using JVM args: -Xmx1959m
+272 [main] INFO  org.parosproxy.paros.Constant - Copying default configuration to /home/zap/.ZAP/config.xml
+332 [main] INFO  org.parosproxy.paros.Constant - Creating directory /home/zap/.ZAP/session
+332 [main] INFO  org.parosproxy.paros.Constant - Creating directory /home/zap/.ZAP/dirbuster
+332 [main] INFO  org.parosproxy.paros.Constant - Creating directory /home/zap/.ZAP/fuzzers
+332 [main] INFO  org.parosproxy.paros.Constant - Creating directory /home/zap/.ZAP/plugin
+May 16, 2026 12:26:32 AM java.util.prefs.FileSystemPreferences$1 run
+INFO: Created user preferences directory.
+Job requestor set user = app_user
+Job requestor set url = http://host.docker.internal:5000/
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/main
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=products
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=customers
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=orders
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=order_items
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=categories
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=products&filter_col=name&filter_op=like&filter_val=test
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=products&filter_col=id&filter_op=eq&filter_val=1
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=products&filter_col=id&filter_op=in&filter_val=1,2,3
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/view?table=products&filter_col=price&filter_op=gt&filter_val=10
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/add?table=products
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/add?table=customers
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/add?table=orders
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/add?table=categories
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/update?table=products
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/update?table=customers
+Job requestor set method = GET
+Job requestor set url = http://host.docker.internal:5000/update?table=products&id=1
+Job requestor set method = GET
+Job spider set context = shop_demo_greybox
+Job spider set user = app_user
+Job spider set url = http://host.docker.internal:5000
+Job spider set maxDuration = 3
+Job spider set maxDepth = 10
+Job spider set acceptCookies = true
+Job passiveScan-wait set maxDuration = 5
+Job activeScan set context = shop_demo_greybox
+Job activeScan set user = app_user
+Job activeScan set policy = Default Policy
+Job activeScan set maxRuleDurationInMins = 3
+Job activeScan set maxScanDurationInMins = 20
+Job report set template = traditional-json
+Job report set reportDir = /zap/wrk
+Job report set reportFile = greybox_report
+Job report set reportTitle = ZAP Grey-box Scan — shop_demo
+Job report set reportDescription = Authenticated grey-box DAST scan. Routes seeded from web.py source code. Tables: products, customers, orders, order_items, categories.
+Job report set template = traditional-html
+Job report set reportDir = /zap/wrk
+Job report set reportFile = greybox_report
+Job report set reportTitle = ZAP Grey-box Scan — shop_demo
+Job requestor started
+Job requestor requesting URL http://host.docker.internal:5000/ with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/main with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=products with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=customers with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=orders with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=order_items with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=categories with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=products&filter_col=name&filter_op=like&filter_val=test with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=products&filter_col=id&filter_op=eq&filter_val=1 with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=products&filter_col=id&filter_op=in&filter_val=1,2,3 with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/view?table=products&filter_col=price&filter_op=gt&filter_val=10 with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/add?table=products with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/add?table=customers with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/add?table=orders with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/add?table=categories with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/update?table=products with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/update?table=customers with user app_user
+Job requestor requesting URL http://host.docker.internal:5000/update?table=products&id=1 with user app_user
+Job requestor finished, time taken: 00:00:00
+Job spider started
+Job spider requesting URL http://host.docker.internal:5000
+Job spider found 13 URLs
+Job spider finished, time taken: 00:00:00
+Job passiveScan-wait started
+Job passiveScan-wait finished, time taken: 00:00:01
+Job activeScan started
+Job activeScan finished, time taken: 00:01:55
+Job report started
+Job report generated report /zap/wrk/greybox_report.json
+Job report finished, time taken: 00:00:00
+Job report started
+Job report generated report /zap/wrk/greybox_report.html
+Job report finished, time taken: 00:00:00
+Automation plan succeeded!

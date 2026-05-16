@@ -1,0 +1,119 @@
+---
+# OWASP ZAP Automation Framework — Grey-box scan
+# Provides: form-based authentication + all known routes from web.py source code
+env:
+  contexts:
+    - name: "shop_demo_greybox"
+      urls:
+        - "http://host.docker.internal:5000"
+      includePaths:
+        - "http://host.docker.internal:5000.*"
+      excludePaths:
+        - "http://host.docker.internal:5000/logout"
+      authentication:
+        method: "form"
+        parameters:
+          loginPageUrl: "http://host.docker.internal:5000/"
+          loginRequestData: "db_user={%username%}&db_pass={%password%}"
+          loginUrl: "http://host.docker.internal:5000/"
+        verification:
+          method: "response"
+          loggedInRegex: "\\QWelcome,\\E"
+          loggedOutRegex: "\\QPlease log in\\E"
+          pollFrequency: 60
+          pollUnits: "requests"
+      sessionManagement:
+        method: "cookie"
+        parameters: {}
+      users:
+        - name: "app_user"
+          credentials:
+            username: "app_user"
+            password: "app_pass_ChangeMe!"
+  parameters:
+    failOnError: false
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # Seed all known URLs from source code (grey-box knowledge)
+  - type: requestor
+    parameters:
+      user: "app_user"
+    requests:
+      - url: "http://host.docker.internal:5000/"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/main"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=products"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=customers"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=orders"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=order_items"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=categories"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=products&filter_col=name&filter_op=like&filter_val=test"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=products&filter_col=id&filter_op=eq&filter_val=1"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=products&filter_col=id&filter_op=in&filter_val=1,2,3"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/view?table=products&filter_col=price&filter_op=gt&filter_val=10"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/add?table=products"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/add?table=customers"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/add?table=orders"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/add?table=categories"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/update?table=products"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/update?table=customers"
+        method: "GET"
+      - url: "http://host.docker.internal:5000/update?table=products&id=1"
+        method: "GET"
+
+  # Spider as authenticated user
+  - type: spider
+    parameters:
+      context: "shop_demo_greybox"
+      user: "app_user"
+      url: "http://host.docker.internal:5000"
+      maxDuration: 3
+      maxDepth: 10
+      acceptCookies: true
+
+  # Passive scan — analyse all collected traffic
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  # Active scan as authenticated user
+  - type: activeScan
+    parameters:
+      context: "shop_demo_greybox"
+      user: "app_user"
+      policy: "Default Policy"
+      maxRuleDurationInMins: 3
+      maxScanDurationInMins: 20
+
+  # Reports
+  - type: report
+    parameters:
+      template: "traditional-json"
+      reportDir: "/zap/wrk"
+      reportFile: "greybox_report"
+      reportTitle: "ZAP Grey-box Scan — shop_demo"
+      reportDescription: "Authenticated grey-box DAST scan. Routes seeded from web.py source code. Tables: products, customers, orders, order_items, categories."
+
+  - type: report
+    parameters:
+      template: "traditional-html"
+      reportDir: "/zap/wrk"
+      reportFile: "greybox_report"
+      reportTitle: "ZAP Grey-box Scan — shop_demo"

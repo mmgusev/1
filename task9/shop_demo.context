@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+    <context>
+        <name>shop_demo_greybox</name>
+        <desc>Flask shop_demo authenticated context for grey-box DAST. Routes extracted from web.py source code.</desc>
+        <inscope>true</inscope>
+        <incregexes>http://host\.docker\.internal:5000.*</incregexes>
+        <excregexes>http://host\.docker\.internal:5000/logout.*</excregexes>
+        <authentication>
+            <form>
+                <loginurl>http://host.docker.internal:5000/</loginurl>
+                <loginrequestdata>db_user={%username%}&amp;db_pass={%password%}</loginrequestdata>
+            </form>
+            <loggedin>Welcome,</loggedin>
+            <loggedout>Please log in</loggedout>
+            <type>2</type>
+        </authentication>
+        <users>
+            <user>
+                <id>1</id>
+                <name>app_user</name>
+                <credentials>
+                    <username>app_user</username>
+                    <password>app_pass_ChangeMe!</password>
+                </credentials>
+                <enabled>true</enabled>
+            </user>
+        </users>
+        <session>
+            <type>0</type>
+        </session>
+        <technology>
+            <include>Db.PostgreSQL</include>
+            <include>Language.Python</include>
+            <include>OS.Linux</include>
+            <include>WS.Flask</include>
+        </technology>
+    </context>
+</configuration>

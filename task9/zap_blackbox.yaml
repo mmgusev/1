@@ -1,0 +1,61 @@
+---
+# OWASP ZAP Automation Framework — Black-box scan
+# Mode: black-box (no credentials, no session info)
+env:
+  contexts:
+    - name: "shop_demo_blackbox"
+      urls:
+        - "http://host.docker.internal:5000"
+      includePaths:
+        - "http://host.docker.internal:5000.*"
+      excludePaths: []
+  parameters:
+    failOnError: false
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # 1. Spider — discover all reachable URLs without authentication
+  - type: spider
+    parameters:
+      context: "shop_demo_blackbox"
+      url: "http://host.docker.internal:5000"
+      maxDuration: 3          # minutes
+      maxDepth: 10
+      acceptCookies: true
+
+  # 2. Ajax Spider — handle JS-rendered pages
+  - type: spiderAjax
+    parameters:
+      context: "shop_demo_blackbox"
+      url: "http://host.docker.internal:5000"
+      maxDuration: 2
+
+  # 3. Passive scan — analyse all traffic collected so far
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  # 4. Active scan — attack discovered endpoints
+  - type: activeScan
+    parameters:
+      context: "shop_demo_blackbox"
+      policy: "Default Policy"
+      maxRuleDurationInMins: 2
+      maxScanDurationInMins: 10
+
+  # 5. Reports
+  - type: report
+    parameters:
+      template: "traditional-json"
+      reportDir: "/zap/reports"
+      reportFile: "blackbox_report"
+      reportTitle: "ZAP Black-box Scan — shop_demo"
+      reportDescription: "Automated black-box DAST scan of the Flask shop_demo application"
+
+  - type: report
+    parameters:
+      template: "traditional-xml"
+      reportDir: "/zap/reports"
+      reportFile: "blackbox_report"
+      reportTitle: "ZAP Black-box Scan — shop_demo"
