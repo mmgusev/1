@@ -1,0 +1,201 @@
+name: "DAST — Develop Branch"
+
+# Триггер: Push/Merge в ветку develop
+on:
+  push:
+    branches:
+      - "develop"
+
+jobs:
+  dast:
+    name: "DAST (OWASP ZAP)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    services:
+      # PostgreSQL для приложения
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_DB: shop_demo
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d shop_demo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r task7/requirements.txt
+
+      # ── Инициализация БД ──────────────────────────────────────────────────
+      - name: Initialize database schema and demo data
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d shop_demo -f task7/schema.sql
+          psql -h localhost -U postgres -d shop_demo -f task7/create_user_and_grants.sql
+          psql -h localhost -U postgres -d shop_demo -f task7/demo_data.sql
+
+      # ── Запуск Flask-приложения ───────────────────────────────────────────
+      - name: Start Flask application
+        env:
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_NAME: shop_demo
+          DB_USER: app_user
+          DB_PASS: "app_pass_ChangeMe!"
+          SECRET_KEY: "ci-cd-test-secret-key-not-for-production"
+          DUPLICATE_LOG_FILE: "/tmp/shop_app.log"
+        run: |
+          cd task7
+          python app/web.py &
+          echo "Flask PID=$!"
+          # Ждём запуска
+          for i in $(seq 1 15); do
+            curl -s http://localhost:5000/ > /dev/null && echo "Flask is up" && break
+            echo "Waiting for Flask... ($i)"
+            sleep 2
+          done
+
+      # ── ZAP Black-box scan ────────────────────────────────────────────────
+      - name: ZAP Black-box Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: "http://localhost:5000"
+          rules_file_name: ""
+          cmd_options: "-J task10/dast_blackbox_report.json -r task10/dast_blackbox_report.html -l PASS"
+          fail_action: false
+          allow_issue_writing: false
+          artifact_name: "zap-blackbox-develop"
+
+      # ── ZAP Grey-box scan (Automation Framework) ──────────────────────────
+      - name: Prepare ZAP grey-box automation plan
+        run: |
+          mkdir -p task10
+          cat > /tmp/zap_greybox_ci.yaml << 'EOF'
+          ---
+          env:
+            contexts:
+              - name: "shop_demo_greybox"
+                urls:
+                  - "http://localhost:5000"
+                includePaths:
+                  - "http://localhost:5000.*"
+                excludePaths:
+                  - "http://localhost:5000/logout"
+                authentication:
+                  method: "form"
+                  parameters:
+                    loginPageUrl: "http://localhost:5000/"
+                    loginRequestData: "db_user={%username%}&db_pass={%password%}"
+                    loginUrl: "http://localhost:5000/"
+                  verification:
+                    method: "response"
+                    loggedInRegex: "\\QWelcome,\\E"
+                    loggedOutRegex: "\\QPlease log in\\E"
+                sessionManagement:
+                  method: "cookie"
+                users:
+                  - name: "app_user"
+                    credentials:
+                      username: "app_user"
+                      password: "app_pass_ChangeMe!"
+            parameters:
+              failOnError: false
+              failOnWarning: false
+              progressToStdout: true
+          jobs:
+            - type: requestor
+              parameters:
+                user: "app_user"
+              requests:
+                - url: "http://localhost:5000/"
+                  method: "GET"
+                - url: "http://localhost:5000/main"
+                  method: "GET"
+                - url: "http://localhost:5000/view?table=products"
+                  method: "GET"
+                - url: "http://localhost:5000/view?table=customers"
+                  method: "GET"
+                - url: "http://localhost:5000/view?table=orders"
+                  method: "GET"
+                - url: "http://localhost:5000/add?table=products"
+                  method: "GET"
+                - url: "http://localhost:5000/add?table=customers"
+                  method: "GET"
+                - url: "http://localhost:5000/update?table=products"
+                  method: "GET"
+                - url: "http://localhost:5000/update?table=products&id=1"
+                  method: "GET"
+            - type: spider
+              parameters:
+                context: "shop_demo_greybox"
+                user: "app_user"
+                url: "http://localhost:5000"
+                maxDuration: 2
+                maxDepth: 10
+            - type: passiveScan-wait
+              parameters:
+                maxDuration: 3
+            - type: activeScan
+              parameters:
+                context: "shop_demo_greybox"
+                user: "app_user"
+                policy: "Default Policy"
+                maxRuleDurationInMins: 2
+                maxScanDurationInMins: 10
+            - type: report
+              parameters:
+                template: "traditional-json"
+                reportDir: "/zap/wrk"
+                reportFile: "dast_greybox_report"
+                reportTitle: "ZAP Grey-box CI/CD — shop_demo"
+            - type: report
+              parameters:
+                template: "traditional-html"
+                reportDir: "/zap/wrk"
+                reportFile: "dast_greybox_report"
+                reportTitle: "ZAP Grey-box CI/CD — shop_demo"
+          EOF
+
+      - name: ZAP Grey-box Scan (Automation Framework)
+        run: |
+          mkdir -p task10
+          docker run --rm \
+            --network host \
+            -v /tmp:/zap/wrk:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap.sh -cmd -autorun /zap/wrk/zap_greybox_ci.yaml \
+            > task10/dast_greybox_run.log 2>&1 || true
+          cp /tmp/dast_greybox_report.json task10/ 2>/dev/null || true
+          cp /tmp/dast_greybox_report.html task10/ 2>/dev/null || true
+          tail -20 task10/dast_greybox_run.log
+
+      # ── Upload artifacts ──────────────────────────────────────────────────
+      - name: Upload DAST reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dast-reports-develop-${{ github.sha }}
+          path: |
+            task10/dast_blackbox_report.json
+            task10/dast_blackbox_report.html
+            task10/dast_greybox_report.json
+            task10/dast_greybox_report.html
+            task10/dast_greybox_run.log
+          retention-days: 30

@@ -1,0 +1,78 @@
+name: "SAST — Feature Branch"
+
+# Триггер: Push в любую feature/* ветку
+on:
+  push:
+    branches:
+      - "feature/**"
+
+jobs:
+  sast:
+    name: "SAST (Bandit + Semgrep)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install bandit semgrep
+
+      # ── Bandit ────────────────────────────────────────────────────────────
+      - name: Run Bandit (Python SAST)
+        run: |
+          bandit -r task7/app/ \
+            -f json \
+            -o task10/bandit_report.json \
+            --exit-zero
+          bandit -r task7/app/ \
+            -f txt \
+            -o task10/bandit_report.txt \
+            --exit-zero
+        continue-on-error: true
+
+      - name: Print Bandit summary
+        run: cat task10/bandit_report.txt || true
+
+      # ── Semgrep ───────────────────────────────────────────────────────────
+      - name: Run Semgrep (multi-language SAST)
+        run: |
+          semgrep scan \
+            --config auto \
+            --json \
+            --output task10/semgrep_report.json \
+            task7/app/ task7/app/templates/ \
+            --no-error
+        continue-on-error: true
+
+      - name: Print Semgrep summary
+        run: |
+          python3 -c "
+          import json
+          with open('task10/semgrep_report.json') as f:
+              d = json.load(f)
+          results = d.get('results', [])
+          print(f'Semgrep findings: {len(results)}')
+          for r in results:
+              print(f'  [{r[\"extra\"][\"severity\"]}] {r[\"check_id\"]} @ {r[\"path\"]}:{r[\"start\"][\"line\"]}')
+          " || true
+
+      # ── Upload artifacts ──────────────────────────────────────────────────
+      - name: Upload SAST reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-reports-${{ github.sha }}
+          path: |
+            task10/bandit_report.json
+            task10/bandit_report.txt
+            task10/semgrep_report.json
+          retention-days: 30
