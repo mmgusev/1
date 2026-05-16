@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: shop_demo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Run init SQL scripts on first start (alphabetical order)
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./create_user_and_grants.sql:/docker-entrypoint-initdb.d/02_grants.sql:ro
+      - ./demo_data.sql:/docker-entrypoint-initdb.d/03_demo.sql:ro
+    networks:
+      - shop-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shop_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Flask web application ─────────────────────────────────────────────────
+  app:
+    build: .
+    image: assignment_fast:1.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: shop_demo
+    env_file:
+      - ./.env
+    networks:
+      - shop-net
+    volumes:
+      # Persist log file on the host
+      - ./logs:/var/log
+
+volumes:
+  pgdata:
+
+networks:
+  shop-net:
